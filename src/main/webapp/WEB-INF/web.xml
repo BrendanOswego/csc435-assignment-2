@@ -5,10 +5,6 @@
     <servlet-name>author</servlet-name>
     <servlet-class>mainpackage.servlets.Author</servlet-class>
   </servlet>
-  <servlet>
-    <servlet-name>authorbooks</servlet-name>
-    <servlet-class>mainpackage.servlets.AuthorBooks</servlet-class>
-  </servlet>
   <servlet-mapping>
     <servlet-name>author</servlet-name>
     <url-pattern>/author/*</url-pattern>
