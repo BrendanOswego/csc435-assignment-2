@@ -26,4 +26,4 @@ Description of the project can be found in the `INSTRUCTIONS.md` file.
 
 # Important Notes
 * For information on Java Servlets [here is a good article](http://www.ntu.edu.sg/home/ehchua/programming/java/JavaServlets.html) explaining the basics.
-* Tomcat will be running on `localhost:8080/assignment-1` as the base directory of the Web Application
+* Tomcat will be running on `localhost:8080/assignment-2` as the base directory of the Web Application
