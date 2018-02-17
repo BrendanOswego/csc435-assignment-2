@@ -22,7 +22,7 @@ Description of the project can be found in the `INSTRUCTIONS.md` file.
 * To package the .war file run `./scripts/package.sh`
 * To deploy the .war file to Tomcat run `./scripts/deploy.sh`
 * To start Tomcat run `./scripts/start.sh`
-* To stop Tomcat run `./scripts/stop.sh`
+* To stop Tomcat run `./scripts/shutdown.sh`
 
 # Important Notes
 * For information on Java Servlets [here is a good article](http://www.ntu.edu.sg/home/ehchua/programming/java/JavaServlets.html) explaining the basics.
