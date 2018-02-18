@@ -2,6 +2,7 @@ package mainpackage.servlets;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.sql.SQLException;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -16,17 +17,33 @@ import mainpackage.api.API;
 import mainpackage.api.models.AuthorModel;
 import mainpackage.api.models.BookModel;
 
-public class Author extends HttpServlet {
+public class Authors extends HttpServlet {
   private static final long serialVersionUID = -2767978412483553482L;
 
   public void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
     PrintWriter out = res.getWriter();
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    if (req.getPathInfo() == null) {
-      out.println(gson.toJson(API.instance().getAllAuthors()));
-    } else {
-      String id = req.getPathInfo().trim().substring(1).split("/")[0];
-      out.println(gson.toJson(API.instance().getAuthor(id)));
+    try {
+      if (req.getPathInfo() == null) {
+        out.println(gson.toJson(API.instance().getAllAuthors()));
+      } else {
+        String[] paths = req.getPathInfo().trim().substring(1).split("/");
+        String id = paths[0];
+        if (id != null) {
+          try {
+            if (paths[1] != null && paths[1].equals("books")) {
+              out.println(gson.toJson(API.instance().getBooksByAuthor(id)));
+            } else {
+              out.println(gson.toJson(API.instance().getAuthor(id)));
+            }
+          } catch (ArrayIndexOutOfBoundsException e) {
+            e.printStackTrace();
+            out.println(gson.toJson(API.instance().getAuthor(id)));
+          }
+        }
+      }
+    } catch (SQLException e) {
+      e.printStackTrace();
     }
     out.close();
   }
@@ -51,7 +68,6 @@ public class Author extends HttpServlet {
       }
       }
     }
-
     out.close();
   }
 
@@ -66,15 +82,15 @@ public class Author extends HttpServlet {
         out.println("Error when trying to add author");
       else
         out.println("Could not add author to database");
-    } catch (IOException e) {
+    } catch (IOException | SQLException e) {
       e.printStackTrace();
     }
   }
 
   private void addBook(String author_id, PrintWriter out, HttpServletRequest req) {
     ObjectMapper mapper = new ObjectMapper();
-    AuthorModel author = API.instance().getAuthor(author_id);
     try {
+      AuthorModel author = API.instance().getAuthor(author_id);
       BookModel book = mapper.readValue(req.getReader(), BookModel.class);
       API.status status = API.instance().addBookToAuthor(author, book);
       if (status == API.status.ADDED)
@@ -83,7 +99,7 @@ public class Author extends HttpServlet {
         out.println("Error when trying to add book");
       else
         out.println("Could not add book to database");
-    } catch (IOException e) {
+    } catch (IOException | SQLException e) {
       e.printStackTrace();
     }
   }

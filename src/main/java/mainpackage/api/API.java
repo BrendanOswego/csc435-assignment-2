@@ -5,7 +5,10 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 import mainpackage.api.models.AuthorModel;
 import mainpackage.api.models.BookAuthorModel;
@@ -30,48 +33,28 @@ public class API {
     return instance;
   }
 
-  public status addBookToAuthor(AuthorModel author, BookModel book) {
+  public status addBookToAuthor(AuthorModel author, BookModel book) throws SQLException {
     BookAuthorModel ba = new BookAuthorModel(book.getID(), author.getID());
-    Connection conn = null;
-    Statement statement = null;
-    try {
-      conn = Controller.instance().createConnection();
-      statement = conn.createStatement();
-
+    try (Connection conn = Controller.instance().createConnection(); Statement statement = conn.createStatement()) {
       if (statement.executeUpdate("INSERT INTO book VALUES " + Helper.asValue(book.asValue())) != 0
           && statement.executeUpdate("INSERT INTO book_author VALUES " + Helper.asValue(ba.asValue())) != 0)
         return status.ADDED;
-
       return status.NOT_ADDED;
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return status.EXCEPTION;
     }
   }
 
-  public status addAuthor(AuthorModel author) {
-    Connection conn = null;
-    Statement statement = null;
-    try {
-      conn = Controller.instance().createConnection();
-      statement = conn.createStatement();
+  public status addAuthor(AuthorModel author) throws SQLException {
+    try (Connection conn = Controller.instance().createConnection(); Statement statement = conn.createStatement()) {
       if (statement.executeUpdate("INSERT INTO author VALUES " + Helper.asValue(author.asValue())) != 0)
         return status.ADDED;
       return status.NOT_ADDED;
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return status.EXCEPTION;
     }
   }
 
-  public List<AuthorModel> getAllAuthors() {
+  public List<AuthorModel> getAllAuthors() throws SQLException {
     List<AuthorModel> models = new ArrayList<>();
-    Connection conn = null;
-    Statement statement = null;
     ResultSet authors;
-    try {
-      conn = Controller.instance().createConnection();
-      statement = conn.createStatement();
+    try (Connection conn = Controller.instance().createConnection(); Statement statement = conn.createStatement();) {
       authors = statement.executeQuery("SELECT * FROM author");
       while (authors.next()) {
         AuthorModel model = new AuthorModel();
@@ -80,19 +63,12 @@ public class API {
         models.add(model);
       }
       return models;
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return null;
     }
   }
 
-  public AuthorModel getAuthor(String author_id) {
-    Connection conn = null;
-    Statement statement = null;
+  public AuthorModel getAuthor(String author_id) throws SQLException {
     ResultSet author;
-    try {
-      conn = Controller.instance().createConnection();
-      statement = conn.createStatement();
+    try (Connection conn = Controller.instance().createConnection(); Statement statement = conn.createStatement();) {
       String format = String.format("'%s'", author_id);
       author = statement.executeQuery("SELECT * FROM author WHERE author_id=" + format);
       if (author.next()) {
@@ -102,9 +78,45 @@ public class API {
         return model;
       }
       return null;
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return null;
+    }
+  }
+
+  public List<BookModel> getAllBooks() throws SQLException {
+    List<BookModel> models = new ArrayList<>();
+    ResultSet books;
+    try (Connection conn = Controller.instance().createConnection(); Statement statement = conn.createStatement();) {
+      books = statement.executeQuery("SELECT * FROM book");
+      while (books.next()) {
+        BookModel model = new BookModel();
+        model.setID(books.getString("book_id"));
+        model.setTitle(books.getString("title"));
+        models.add(model);
+      }
+      return models;
+    }
+  }
+
+  public List<BookModel> getBooksByAuthor(String author_id) throws SQLException {
+    List<BookModel> models = new ArrayList<>();
+    ResultSet book_author = null;
+    ResultSet books = null;
+    try (Connection conn = Controller.instance().createConnection();
+        Statement baStatement = conn.createStatement();
+        Statement booksStatement = conn.createStatement()) {
+      String format = String.format("'%s'", author_id);
+      book_author = baStatement.executeQuery("SELECT * FROM book_author WHERE author_id=" + format);
+      while (book_author.next()) {
+        String book_id = book_author.getString("book_id");
+        format = String.format("'%s'", book_id.toString());
+        books = booksStatement.executeQuery("SELECT * FROM book WHERE book_id=" + format);
+        while (books.next()) {
+          BookModel book = new BookModel();
+          book.setID(books.getString("book_id"));
+          book.setTitle(books.getString("title"));
+          models.add(book);
+        }
+      }
+      return models;
     }
   }
 
