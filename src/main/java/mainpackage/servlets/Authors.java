@@ -23,27 +23,23 @@ public class Authors extends HttpServlet {
   public void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
     PrintWriter out = res.getWriter();
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    try {
-      if (req.getPathInfo() == null) {
-        out.println(gson.toJson(API.instance().getAllAuthors()));
-      } else {
-        String[] paths = req.getPathInfo().trim().substring(1).split("/");
-        String id = paths[0];
-        if (id != null) {
-          try {
-            if (paths[1] != null && paths[1].equals("books")) {
-              out.println(gson.toJson(API.instance().getBooksByAuthor(id)));
-            } else {
-              out.println(gson.toJson(API.instance().getAuthor(id)));
-            }
-          } catch (ArrayIndexOutOfBoundsException e) {
-            e.printStackTrace();
-            out.println(gson.toJson(API.instance().getAuthor(id)));
+    if (req.getPathInfo() == null) {
+      out.println(gson.toJson(API.instance().getAllAuthors()));
+    } else {
+      String[] paths = req.getPathInfo().trim().substring(1).split("/");
+      String id = paths[0];
+      if (id != null) {
+        try {
+          if (paths[1] != null && paths[1].equals("books")) {
+            out.println(gson.toJson(API.instance().getBooksByAuthor(id)));
+          } else {
+            out.println(gson.toJson(API.instance().getAuthorById(id)));
           }
+        } catch (ArrayIndexOutOfBoundsException e) {
+          e.printStackTrace();
+          out.println(gson.toJson(API.instance().getAuthorById(id)));
         }
       }
-    } catch (SQLException e) {
-      e.printStackTrace();
     }
     out.close();
   }
@@ -54,21 +50,18 @@ public class Authors extends HttpServlet {
       addAuthor(out, req);
     } else {
       String[] paths = req.getPathInfo().substring(1).split("/");
-      switch (paths.length) {
-      case 0: {
+      if (paths.length == 0)
         addAuthor(out, req);
-        break;
-      }
-      case 2: {
+      else if (paths.length == 2)
         addBook(paths[0], out, req);
-        break;
-      }
-      default: {
-        break;
-      }
-      }
     }
     out.close();
+  }
+
+  public void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+    PrintWriter out = res.getWriter();
+    String id = req.getPathInfo().trim().substring(1).split("/")[0];
+
   }
 
   private void addAuthor(PrintWriter out, HttpServletRequest req) {
@@ -82,15 +75,15 @@ public class Authors extends HttpServlet {
         out.println("Error when trying to add author");
       else
         out.println("Could not add author to database");
-    } catch (IOException | SQLException e) {
-      e.printStackTrace();
+    } catch (IOException e) {
+      out.println(e.getMessage());
     }
   }
 
   private void addBook(String author_id, PrintWriter out, HttpServletRequest req) {
     ObjectMapper mapper = new ObjectMapper();
     try {
-      AuthorModel author = API.instance().getAuthor(author_id);
+      AuthorModel author = API.instance().getAuthorById(author_id);
       BookModel book = mapper.readValue(req.getReader(), BookModel.class);
       API.status status = API.instance().addBookToAuthor(author, book);
       if (status == API.status.ADDED)
@@ -99,7 +92,7 @@ public class Authors extends HttpServlet {
         out.println("Error when trying to add book");
       else
         out.println("Could not add book to database");
-    } catch (IOException | SQLException e) {
+    } catch (IOException e) {
       e.printStackTrace();
     }
   }

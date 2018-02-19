@@ -1,5 +1,6 @@
 CREATE TABLE author (
   author_id VARCHAR(36) NOT NULL,
-  author_name VARCHAR(50) NOT NULL,
+  first_name VARCHAR(15),
+  last_name VARCHAR(15) NOT NULL,
   PRIMARY KEY (author_id)
 );

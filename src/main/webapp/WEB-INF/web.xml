@@ -4,8 +4,16 @@
     <servlet-name>authors</servlet-name>
     <servlet-class>mainpackage.servlets.Authors</servlet-class>
   </servlet>
+  <servlet>
+    <servlet-name>books</servlet-name>
+    <servlet-class>mainpackage.servlets.Books</servlet-class>
+  </servlet>
   <servlet-mapping>
     <servlet-name>authors</servlet-name>
     <url-pattern>/authors/*</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>books</servlet-name>
+    <url-pattern>/books/*</url-pattern>
   </servlet-mapping>
 </web-app>
