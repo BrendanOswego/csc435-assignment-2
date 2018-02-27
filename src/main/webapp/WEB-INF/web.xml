@@ -2,11 +2,11 @@
 <web-app>
   <servlet>
     <servlet-name>authors</servlet-name>
-    <servlet-class>mainpackage.servlets.Authors</servlet-class>
+    <servlet-class>mainpackage.views.Authors</servlet-class>
   </servlet>
   <servlet>
     <servlet-name>books</servlet-name>
-    <servlet-class>mainpackage.servlets.Books</servlet-class>
+    <servlet-class>mainpackage.views.Books</servlet-class>
   </servlet>
   <servlet-mapping>
     <servlet-name>authors</servlet-name>

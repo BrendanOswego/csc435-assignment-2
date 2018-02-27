@@ -5,34 +5,38 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-public class Controller {
+public class SQLConnection {
   private static final String DB = "jdbc:mysql://localhost/assignment_2";
   private static final String USER = "voldemort";
   private static final String PWD = "hewhomustnotbenamed";
 
   private static Properties properties;
 
-  private static Controller instance = null;
+  private static SQLConnection instance = null;
 
-  private Controller() {
+  private SQLConnection() {
     properties = new Properties();
     properties.setProperty("user", USER);
     properties.setProperty("password", PWD);
     properties.setProperty("useSSL", "false");
     properties.setProperty("autoReconnect", "true");
+    try {
+      Class.forName("com.mysql.jdbc.Driver");
+    } catch (ClassNotFoundException e) {
+      e.printStackTrace();
+    }
   }
 
-  public static Controller instance() {
+  public static SQLConnection instance() {
     if (instance == null)
-      instance = new Controller();
+      instance = new SQLConnection();
     return instance;
   }
 
   public Connection createConnection() {
     try {
-      Class.forName("com.mysql.jdbc.Driver");
       return DriverManager.getConnection(DB, properties);
-    } catch (SQLException | ClassNotFoundException e) {
+    } catch (SQLException e) {
       e.printStackTrace();
       return null;
     }

@@ -1,4 +1,4 @@
-package mainpackage.api.models;
+package mainpackage.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -24,7 +24,7 @@ public class AuthorModel implements IModel {
   }
 
   public String asValue() {
-    return String.format("'%s', '%s', '%s'", author_id.toString(), first_name, last_name);
+    return String.format("%s, %s, %s", author_id.toString(), first_name, last_name);
   }
 
   public String getLastName() {

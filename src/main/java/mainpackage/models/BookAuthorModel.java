@@ -1,4 +1,4 @@
-package mainpackage.api.models;
+package mainpackage.models;
 
 import java.util.UUID;
 
