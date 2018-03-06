@@ -2,7 +2,6 @@ package mainpackage.views;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -19,6 +18,7 @@ public class Authors extends HttpServlet {
   private static final long serialVersionUID = -2767978412483553482L;
 
   public void doGet(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+    res.setContentType("application/json");
     PrintWriter out = res.getWriter();
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
     if (req.getPathInfo() == null) {
@@ -31,7 +31,8 @@ public class Authors extends HttpServlet {
           if (paths.length >= 2 && paths[1].equals("books")) {
             out.println(gson.toJson(API.instance().getBooksByAuthor(id)));
           } else {
-            out.println(gson.toJson(API.instance().getAuthorById(id)));
+            AuthorModel model = API.instance().getAuthorById(id);
+            out.println(gson.toJson(model != null ? model : "Author does not exist"));
           }
         } catch (ArrayIndexOutOfBoundsException e) {
           e.printStackTrace();
@@ -43,6 +44,7 @@ public class Authors extends HttpServlet {
   }
 
   public void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
+    res.setContentType("application/json");
     PrintWriter out = res.getWriter();
     if (req.getPathInfo() == null) {
       addAuthor(out, req);
@@ -86,20 +88,17 @@ public class Authors extends HttpServlet {
 
   private void addAuthor(PrintWriter out, HttpServletRequest req) {
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    API.status status = API.instance().addAuthor(req);
-    out.println(gson.toJson(status));
+    out.println(gson.toJson(API.instance().addAuthor(req)));
   }
 
   private void addBook(String author_id, PrintWriter out, HttpServletRequest req) {
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    API.status status = API.instance().addBookToAuthor(author_id, req, out);
-    out.println(gson.toJson(status));
+    out.println(gson.toJson(API.instance().addBookToAuthor(author_id, req, out)));
   }
 
   private void updateAuthor(String author_id, PrintWriter out, HttpServletRequest req) {
     Gson gson = new GsonBuilder().setPrettyPrinting().create();
-    API.instance().updateAuthor(author_id, req);
-    out.println(gson.toJson(API.instance().getAuthorById(author_id)));
+    out.println(gson.toJson(API.instance().updateAuthor(author_id, req)));
   }
 
   private void updateBook(String book_id, PrintWriter out, HttpServletRequest req) {

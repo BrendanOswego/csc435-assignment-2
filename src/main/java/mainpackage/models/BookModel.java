@@ -5,7 +5,7 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class BookModel implements IModel {
+public class BookModel {
 
   @JsonProperty
   private UUID book_id;
@@ -29,10 +29,6 @@ public class BookModel implements IModel {
     this.genre = genre;
     this.year_published = year_published;
     this.pages = pages;
-  }
-
-  public String asValue() {
-    return String.format("'%s', '%s', '%s', %d, %d", book_id.toString(), title, genre, year_published, pages);
   }
 
   public String getTitle() {

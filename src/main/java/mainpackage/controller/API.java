@@ -15,8 +15,10 @@ import javax.servlet.http.HttpServletRequest;
 import mainpackage.models.AuthorModel;
 import mainpackage.models.BookAuthorModel;
 import mainpackage.models.BookModel;
+import mainpackage.models.ResponseModel;
 import mainpackage.resources.SQLConnection;
 
+//TODO: Change rest of responses to DataResponseModel or ResponseModel
 public class API {
 
   public static enum status {
@@ -34,8 +36,9 @@ public class API {
     return instance;
   }
 
-  public status addBookToAuthor(String author_id, HttpServletRequest req, PrintWriter out) {
+  public ResponseModel addBookToAuthor(String author_id, HttpServletRequest req, PrintWriter out) {
     ObjectMapper mapper = new ObjectMapper();
+    ResponseModel response = new ResponseModel();
     String query1 = "SELECT * FROM book WHERE title=? AND genre=? AND year_published=? AND pages=?";
     try (Connection conn = SQLConnection.instance().createConnection();
         PreparedStatement statement = conn.prepareStatement(query1)) {
@@ -47,19 +50,33 @@ public class API {
       statement.setInt(4, book.getPages());
       ResultSet result1 = statement.executeQuery();
       if (result1.next()) { //IF the book is already in the database, but the author doesn't have the book
-        if (authorHasBook(result1.getString("book_id"), author_id))
-          return status.ALREADY_ADDED;
+        if (authorHasBook(result1.getString("book_id"), author_id)) {
+          response.setStatus(200);
+          response.setMessage("Book already added to Author");
+        }
         book.setID(result1.getString("book_id"));
-        String query2 = "INSERT INTO book_author VALUES (?, ?, ?)";
-        PreparedStatement statement2 = conn.prepareStatement(query2);
         ba.setBookID(book.getID().toString());
-        statement2.setString(1, ba.getID().toString());
-        statement2.setString(2, ba.getBookID().toString());
-        statement2.setString(3, ba.getAuthorID().toString());
-        statement2.executeUpdate();
-        return statement2.getUpdateCount() > 0 ? status.UPDATED : status.NOT_UPDATED;
-      } //book is not in the database, have to add it, as well as to the book_author table
-      String query3 = "INSERT INTO book(book_id, title, genre, year_published, pages) SELECT * FROM (SELECT ?, ?, ?, ?, ?) as tmp WHERE NOT EXISTS (SELECT title, year_published, pages FROM author WHERE title=? AND year_published=? AND pages=?)";
+        String query2 = "INSERT INTO book_author " + "SELECT * FROM (SELECT ?, ?) AS tmp WHERE NOT EXISTS ( "
+            + "SELECT book_id, author_id FROM book_author WHERE book_id=? AND author_id=? ) LIMIT 1;";
+        PreparedStatement statement2 = conn.prepareStatement(query2);
+        statement2.setString(1, ba.getBookID().toString());
+        statement2.setString(2, ba.getAuthorID().toString());
+        statement2.setString(3, ba.getBookID().toString());
+        statement2.setString(4, ba.getAuthorID().toString());
+        statement2.execute();
+        if (statement2.getUpdateCount() > 0) {
+          response.setStatus(201);
+          response.setMessage("Book from table was added to Author");
+        } else {
+          response.setStatus(200);
+          response.setMessage("Book from table already added to Author");
+        }
+        response.setHref(req.getPathInfo());
+        return response;
+      }
+      String query3 = "INSERT INTO book (book_id, title, genre, year_published, pages) "
+          + "SELECT * FROM (SELECT ?, ?, ?, ?, ?) AS tmp WHERE NOT EXISTS ( "
+          + "SELECT title, genre, year_published, pages FROM book WHERE title=? AND genre=? AND year_published=? AND pages=? ) LIMIT 1;";
       PreparedStatement statement3 = conn.prepareStatement(query3);
       statement3.setString(1, book.getID().toString());
       statement3.setString(2, book.getTitle());
@@ -67,43 +84,70 @@ public class API {
       statement3.setInt(4, book.getYearPublished());
       statement3.setInt(5, book.getPages());
       statement3.setString(6, book.getTitle());
-      statement3.setInt(7, book.getYearPublished());
-      statement3.setInt(8, book.getPages());
+      statement3.setString(7, book.getGenre());
+      statement3.setInt(8, book.getYearPublished());
+      statement3.setInt(9, book.getPages());
       statement3.execute();
-      if (statement3.getUpdateCount() > 0) { //makes sure that the book was added to the book table
-        String query4 = "INSERT INTO book_author VALUES ?";
+      if (statement3.getUpdateCount() > 0) {
+        String query4 = "INSERT INTO book_author " + "SELECT * FROM (SELECT ?, ?) AS tmp WHERE NOT EXISTS ( "
+            + "SELECT book_id, author_id FROM book_author WHERE book_id=? AND author_id=? ) LIMIT 1;";
         PreparedStatement statement4 = conn.prepareStatement(query4);
+        statement4.setString(1, ba.getBookID().toString());
+        statement4.setString(2, ba.getAuthorID().toString());
+        statement4.setString(3, ba.getBookID().toString());
+        statement4.setString(4, ba.getAuthorID().toString());
         statement4.execute();
-        return statement4.getUpdateCount() > 0 ? status.ADDED : status.NOT_ADDED;
+        if (statement4.getUpdateCount() > 0) {
+          response.setStatus(201);
+          response.setMessage("Book added to Author");
+        } else {
+          response.setStatus(200);
+          response.setMessage("Book was not added to Author");
+        }
+        return response;
       }
-      return status.NOT_ADDED;
+      response.setStatus(200);
+      response.setMessage("Book already added to Author");
+      return response;
     } catch (SQLException | IOException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      response.setStatus(500);
+      response.setMessage("There was an internal SQL exception");
+      return response;
     }
   }
 
-  public status addAuthor(HttpServletRequest req) {
+  public ResponseModel addAuthor(HttpServletRequest req) {
     ObjectMapper mapper = new ObjectMapper();
+    ResponseModel model = new ResponseModel();
     try {
       AuthorModel author = mapper.readValue(req.getReader(), AuthorModel.class);
       String query = "INSERT INTO author (author_id, first_name, last_name) SELECT * FROM (SELECT ?, ?, ?) as tmp WHERE NOT EXISTS (SELECT first_name, last_name FROM author WHERE first_name=? AND last_name=?)";
       try (Connection conn = SQLConnection.instance().createConnection();
-          PreparedStatement statement = conn.prepareStatement(query);) {
+          PreparedStatement statement = conn.prepareStatement(query)) {
         statement.setString(1, author.getID().toString());
         statement.setString(2, author.getFirstName());
         statement.setString(3, author.getLastName());
         statement.setString(4, author.getFirstName());
         statement.setString(5, author.getLastName());
         statement.execute();
-        return statement.getUpdateCount() > 0 ? status.UPDATED : status.NOT_UPDATED;
+        if (statement.getUpdateCount() > 0) {
+          model.setStatus(201);
+          model.setMessage("Author added");
+        } else {
+          model.setMessage("Author already added");
+          model.setStatus(200);
+        }
+        return model;
       } catch (SQLException e) {
         e.printStackTrace();
-        return status.EXCEPTION;
+        model.setSQLException(req.getPathInfo());
+        return model;
       }
     } catch (IOException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     }
   }
 
@@ -196,8 +240,9 @@ public class API {
     }
   }
 
-  public status updateAuthor(String author_id, HttpServletRequest req) {
+  public ResponseModel updateAuthor(String author_id, HttpServletRequest req) {
     ObjectMapper mapper = new ObjectMapper();
+    ResponseModel model = new ResponseModel();
     ResultSet result;
     Connection conn = null;
     PreparedStatement statement = null;
@@ -205,7 +250,8 @@ public class API {
       AuthorModel newModel = (AuthorModel) mapper.readValue(req.getReader(), AuthorModel.class);
       AuthorModel oldModel = API.instance().getAuthorById(author_id);
       conn = SQLConnection.instance().createConnection();
-      statement = conn.prepareStatement("SELECT * FROM author WHERE author_id=?");
+      statement = conn.prepareStatement("SELECT * FROM author WHERE author_id=?", ResultSet.TYPE_SCROLL_INSENSITIVE,
+          ResultSet.CONCUR_UPDATABLE);
       statement.setString(1, author_id);
       result = statement.executeQuery();
       if (result.next()) {
@@ -214,12 +260,17 @@ public class API {
         if (newModel.getLastName() != null && !newModel.getLastName().equals(oldModel.getLastName()))
           result.updateString("last_name", newModel.getLastName());
         result.updateRow();
-        return status.UPDATED;
+        model.setMessage("Author updated successfully");
+        model.setStatus(200);
+        return model;
       }
-      return status.NOT_UPDATED;
+      model.setMessage("Author specified does not exist");
+      model.setStatus(200);
+      return model;
     } catch (SQLException | IOException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     } finally {
       if (statement != null) {
         try {
@@ -231,8 +282,9 @@ public class API {
     }
   }
 
-  public status updateBook(String book_id, HttpServletRequest req) {
+  public ResponseModel updateBook(String book_id, HttpServletRequest req) {
     ObjectMapper mapper = new ObjectMapper();
+    ResponseModel model = new ResponseModel();
     ResultSet result;
     Connection conn = null;
     PreparedStatement statement = null;
@@ -254,12 +306,17 @@ public class API {
         if (newBook.getYearPublished() != 0 && (newBook.getYearPublished() != oldBook.getYearPublished()))
           result.updateInt("year_published", newBook.getYearPublished());
         result.updateRow();
-        return status.UPDATED;
+        model.setMessage("Book updated successfully");
+        model.setStatus(200);
+        return model;
       }
-      return status.NOT_UPDATED;
+      model.setMessage("Book does not exist");
+      model.setStatus(200);
+      return model;
     } catch (SQLException | IOException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     } finally {
       if (statement != null) {
         try {
@@ -271,7 +328,8 @@ public class API {
     }
   }
 
-  public status removeAuthor(String author_id, HttpServletRequest req) {
+  public ResponseModel removeAuthor(String author_id, HttpServletRequest req) {
+    ResponseModel model = new ResponseModel();
     try {
       Connection conn = SQLConnection.instance().createConnection();
       PreparedStatement ba_statement = conn.prepareStatement("DELETE FROM book_author WHERE author_id=?");
@@ -280,28 +338,46 @@ public class API {
       PreparedStatement author_statement = conn.prepareStatement("DELETE FROM author WHERE author_id=?");
       author_statement.setString(1, author_id);
       author_statement.execute();
-      return author_statement.getUpdateCount() > 0 ? status.REMOVED : status.NOT_REMOVED;
+      if (author_statement.getUpdateCount() > 0) {
+        model.setMessage("Author removed successfully");
+        model.setStatus(200);
+      } else {
+        model.setMessage("Author does not exist");
+        model.setStatus(200);
+      }
+      return model;
     } catch (SQLException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     }
   }
 
-  public status removeBookByAuthor(String author_id, String book_id, HttpServletRequest req) {
+  public ResponseModel removeBookByAuthor(String author_id, String book_id, HttpServletRequest req) {
+    ResponseModel model = new ResponseModel();
     try {
       Connection conn = SQLConnection.instance().createConnection();
       PreparedStatement statement = conn.prepareStatement("DELETE FROM book_author WHERE book_id=? AND author_id=?");
       statement.setString(1, book_id);
       statement.setString(2, author_id);
       statement.execute();
-      return statement.getUpdateCount() > 0 ? status.REMOVED : status.NOT_REMOVED;
+      if (statement.getUpdateCount() > 0) {
+        model.setMessage("Book removed from Author successfully");
+        model.setStatus(200);
+      } else {
+        model.setMessage("Book by Author does not exist");
+        model.setStatus(200);
+      }
+      return model;
     } catch (SQLException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     }
   }
 
-  public status removeBook(String book_id) {
+  public ResponseModel removeBook(String book_id, HttpServletRequest req) {
+    ResponseModel model = new ResponseModel();
     try {
       Connection conn = SQLConnection.instance().createConnection();
       PreparedStatement ba_statement = conn.prepareStatement("DELETE FROM book_author WHERE book_id=?");
@@ -310,10 +386,18 @@ public class API {
       PreparedStatement book_statement = conn.prepareStatement("DELETE FROM book WHERE book_id=?");
       book_statement.setString(1, book_id);
       book_statement.execute();
-      return book_statement.getUpdateCount() > 0 ? status.REMOVED : status.NOT_REMOVED;
+      if (book_statement.getUpdateCount() > 0) {
+        model.setMessage("Book removed successfully");
+        model.setStatus(200);
+      } else {
+        model.setMessage("Book does not exist");
+        model.setStatus(200);
+      }
+      return model;
     } catch (SQLException e) {
       e.printStackTrace();
-      return status.EXCEPTION;
+      model.setSQLException(req.getPathInfo());
+      return model;
     }
   }
 

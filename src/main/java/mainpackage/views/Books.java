@@ -42,11 +42,12 @@ public class Books extends HttpServlet {
 
   public void doDelete(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException {
     res.setContentType("application/json");
+    Gson gson = new GsonBuilder().setPrettyPrinting().create();
     String[] paths = req.getPathInfo().substring(1).split("/");
     if (paths.length == 0) {
       doGet(req, res);
     } else if (paths.length == 1) {
-      API.instance().removeBook(paths[0]);
+      res.getWriter().println(gson.toJson(API.instance().removeBook(paths[0], req)));
     }
   }
 

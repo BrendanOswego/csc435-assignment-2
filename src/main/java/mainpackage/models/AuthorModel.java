@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.UUID;
 
-public class AuthorModel implements IModel {
+public class AuthorModel {
 
   @JsonProperty
   private UUID author_id;
@@ -21,10 +21,6 @@ public class AuthorModel implements IModel {
     this.author_id = UUID.randomUUID();
     this.first_name = first_name;
     this.last_name = last_name;
-  }
-
-  public String asValue() {
-    return String.format("%s, %s, %s", author_id.toString(), first_name, last_name);
   }
 
   public String getLastName() {
