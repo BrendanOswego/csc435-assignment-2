@@ -2,7 +2,7 @@
 
 Description of the project can be found in the `INSTRUCTIONS.md` file.
 
-* This project is moreso for personal use because it persists a local MySQL database. If you clone this repo and already have MySQL and JDBC installed you can change the DB Connection information in `src/main/java/mainpackage/resources/Controller.java`
+* This project is moreso for personal use because it persists a local MySQL database. If you clone this repo and already have MySQL and JDBC installed you can change the DB Connection information in `src/main/java/mainpackage/resources/SQLConnection.java`
 
 # Install Tomcat
 * To run ths program Apache Tomcat must be installed
